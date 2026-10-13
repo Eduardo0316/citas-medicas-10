@@ -48,11 +48,6 @@ public record PacienteRequest(
         @Schema(description = "Direccion del paciente", example = "5A Oriente Norte num 123, Colonia San Pedro, C.P 12345, Puebla, Pue.")
         @NotBlank(message = "La direccion es requerida")
         @Size(min = 20, max = 150, message = "La direccion debe tener entre 20 y 150 caracteres")
-        String direccion,
-
-        @Schema(description = "Estado del registro", example = "Activo")
-        @NotBlank(message = "La direccion es requerida")
-        @Size(min = 1, max = 150, message = "La direccion debe tener entre 1 y 150 caracteres")
-        String estadoRegistro
+        String direccion
 
 ) { }

@@ -22,6 +22,20 @@ spring:
                 - Path=/api/b/**
               filters:
                 - StripPrefix=2
+
+            - id: medicos
+              uri: lb://medicos
+              predicates:
+                - Path=/api/medicos/**
+              filters:
+                - StripPrefix=2
+
+            - id: pacientes
+              uri: lb://pacientes
+              predicates:
+                - Path=/api/pacientes/**
+              filters:
+                - StripPrefix=2
     loadbalancer:
       enabled: true
 eureka:
