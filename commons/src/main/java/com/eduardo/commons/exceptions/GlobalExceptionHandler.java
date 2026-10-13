@@ -2,6 +2,7 @@ package com.eduardo.commons.exceptions;
 
 import java.util.List;
 
+import feign.RetryableException;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -84,15 +85,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(e, pd, headers, status, request);
     }
 
-    // ---------- Red de seguridad ----------
-
-    // 500: cualquier error que no previmos
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleGeneral(Exception e) {
-        log.error("Error interno", e);
-        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
-                "Error interno del servidor. Contacte al administrador.");
+    //503: El servicio remoto esta caido o no responde
+    @ExceptionHandler({ServicioNoDisponibleException.class, RetryableException.class})
+    public ProblemDetail handleServicioNoDisponible(Exception e){
+        log.error("Servicio remoto no disponible ", e);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Un servicio requerido no está disponible");
     }
+
+    // ---------- Red de seguridad ----------
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ProblemDetail handleConstraintViolation(ConstraintViolationException ex) {
@@ -102,5 +103,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
         problem.setTitle("Bad Request");
         return problem;
+    }
+
+    // 500: cualquier error que no previmos
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleGeneral(Exception e) {
+        log.error("Error interno", e);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Error interno del servidor. Contacte al administrador.");
     }
 }
