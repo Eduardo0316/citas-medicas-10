@@ -29,6 +29,9 @@ public record MedicoResponse(
         String disponibilidad,
 
         @Schema(description = "Identificador de la especialidad del medico", example = "20")
-        Long idEspecialidad
+        Long idEspecialidad,
+
+        @Schema(description = "Identifiador de la disponibilidad del medico")
+        Long idDisponibilidad
 ) {
 }

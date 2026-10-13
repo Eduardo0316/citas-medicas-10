@@ -45,6 +45,7 @@ public class MedicoMapper implements CommonMapper<MedicoRequest, MedicoResponse,
                 entidad.getCedulaProfesional(),
                 entidad.getEspecialidad().getDescripcion(),
                 entidad.getDisponibilidad().getDescripcion(),
+                entidad.getEspecialidad().getCodigo(),
                 entidad.getDisponibilidad().getCodigo());
     }
 }
