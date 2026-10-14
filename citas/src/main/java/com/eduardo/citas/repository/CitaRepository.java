@@ -13,5 +13,8 @@ import java.util.List;
 public interface CitaRepository extends JpaRepository<Cita, Long> {
     List<Cita> findByEstadoRegistro(EstadoRegistro estadoRegistro);
 
-    boolean existsByIdPacienteAndEstadoRegistroAndEstadoCitaNotIn(Long idPaciente, EstadoRegistro estadoRegistro, Collection<EstadoCita> estadoCitas);
+    //primero seria si existe el paciente por id, y luego si tiene estadocita diferente de cancelada o eliminada
+    boolean existsByIdPacienteAndEstadoRegistroAndEstadoCitaIn(Long idPaciente, EstadoRegistro estadoRegistro, Collection<EstadoCita> estadoCitas);
+
+    boolean existsByIdMedicoAndEstadoRegistroAndEstadoCitaIn(Long idMedico, EstadoRegistro estadoRegistro, Collection<EstadoCita> estadoCitas);
 }

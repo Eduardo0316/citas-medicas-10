@@ -1,5 +1,6 @@
 package com.eduardo.pacientes.service;
 
+import com.eduardo.commons.clients.CitaClient;
 import com.eduardo.commons.dto.pacientes.PacienteRequest;
 import com.eduardo.commons.dto.pacientes.PacienteResponse;
 import com.eduardo.commons.enums.EstadoRegistro;
@@ -22,6 +23,8 @@ import java.util.List;
 public class PacienteServiceImpl implements PacienteService{
     private final PacienteMapper pacienteMapper;
     private final PacienteRepository pacienteRepository;
+
+    private final CitaClient citaClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -64,6 +67,8 @@ public class PacienteServiceImpl implements PacienteService{
     @Override
     public PacienteResponse actualizar(PacienteRequest request, Long id) {
         Paciente paciente = obtenerPacienteActivoPorId(id);
+        //Validamos si tiene cita activa (confirmada o en curso)
+        citaClient.pacienteConCitaActiva(paciente.getId());
         log.info("Actalizando paciente con id {}", id);
 
         validarCambiosUnicos(request, id);
@@ -86,6 +91,8 @@ public class PacienteServiceImpl implements PacienteService{
     @Override
     public void eliminar(Long id) {
         Paciente paciente = obtenerPacienteActivoPorId(id);
+        //Validamos si tiene cita activa (confirmada o en curso)
+        citaClient.pacienteConCitaActiva(paciente.getId());
         log.info("Eliminando paciente con id {}", id);
 
         paciente.eliminar();
