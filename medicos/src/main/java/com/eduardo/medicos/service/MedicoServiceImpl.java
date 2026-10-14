@@ -1,5 +1,6 @@
 package com.eduardo.medicos.service;
 
+import com.eduardo.commons.clients.CitaClient;
 import com.eduardo.commons.dto.medicos.MedicoRequest;
 import com.eduardo.commons.dto.medicos.MedicoResponse;
 import com.eduardo.commons.enums.DisponibilidadMedico;
@@ -24,6 +25,7 @@ import java.util.List;
 public class MedicoServiceImpl implements MedicoService{
     private final MedicoRepository medicoRepository;
     private final MedicoMapper medicoMapper;
+    private final CitaClient citaClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -85,6 +87,8 @@ public class MedicoServiceImpl implements MedicoService{
     @Override
     public MedicoResponse actualizar(MedicoRequest request, Long id) {
         Medico medico = obtenerMedicoActivoPorId(id);
+        //Validar que no tenga citas activas
+        citaClient.medicoConCitaActiva(medico.getId());
         validarCambiosUnicos(request, id);
 
         log.info("Actualizando medico con id: {}", id);
@@ -108,6 +112,8 @@ public class MedicoServiceImpl implements MedicoService{
     @Override
     public void eliminar(Long id) {
         Medico medico = obtenerMedicoActivoPorId(id);
+        //Validar que no tenga citas activas
+        citaClient.medicoConCitaActiva(medico.getId());
 
         log.info("Crucificando medico con id: {}", id);
 

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,6 +38,40 @@ public class CitaController extends CRUDController<CitaRequest, CitaResponse, Ci
             @PathVariable @Positive(message = "El idEstado debe ser positivo") Long idEstado
     ){
         service.actualizarEstadoCita(idCita, idEstado);
+        return ResponseEntity.noContent().build();
+    }
+
+    @ApiResponse(responseCode = "204", description = "El paciente no tiene cita activa")
+    @ApiResponse(responseCode = "409", description = "El paciente si tiene cita activa",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(
+                            implementation = ProblemaDoc.class
+                    )
+            )
+
+    )
+    @GetMapping("/cita-paciente/{idPaciente}")
+    public ResponseEntity<Void> pacienteConCitaActiva(
+            @PathVariable @Positive(message = "El idPaciente debe ser positivo") Long idPaciente
+    ){
+        service.pacienteConCitaActiva(idPaciente);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/cita-medico/{idMedico}")
+    @ApiResponse(responseCode = "204", description = "El medico no tiene cita activa")
+    @ApiResponse(responseCode = "409", description = "El medico si tiene cita activa",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(
+                            implementation = ProblemaDoc.class
+                    )
+            )
+
+    )
+    public ResponseEntity<Void> medicoConCitaActiva(
+            @PathVariable @Positive(message = "El idMedico debe ser positivo") Long idMedico
+    ){
+        service.medicoConCitaActiva(idMedico);
         return ResponseEntity.noContent().build();
     }
 }

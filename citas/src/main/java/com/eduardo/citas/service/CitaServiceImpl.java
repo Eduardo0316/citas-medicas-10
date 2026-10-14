@@ -32,6 +32,35 @@ public class CitaServiceImpl implements CitaService{
     private final PacienteClient pacienteClient;
 
     @Override
+    public void pacienteConCitaActiva(Long idPaciente) {
+        //Ocupo un metodo en el repository pa ver si el paciente tiene una cita con estado activa
+        log.info("Validando si paciente no tiene una cita activa");
+        //Ocupo buscar si existe (al menos una cita) del paciente que este pendiente
+        //osea buscar por id paciente
+        // si el paciente es activo (🫦)
+        // y si tiene POR LO MENOS una cita con estado diferente a finalizada o cancelada
+        if(citaRepository.existsByIdPacienteAndEstadoRegistroAndEstadoCitaIn(
+                idPaciente,
+                EstadoRegistro.ACTIVO,
+                //Osea solo debe devolver un paciente con estadocita Pendiente, Confirmada o En curso
+                List.of(EstadoCita.CONFIRMADA, EstadoCita.EN_CURSO)
+        ))
+            throw new ConflictoException("El paciente tiene una cita activa");
+    }
+
+    @Override
+    public void medicoConCitaActiva(Long idMedico) {
+        //Ahora a aplicar el mismo metodo que antes
+        log.info("Validando si medico no tiene una cita activa");
+        if(citaRepository.existsByIdMedicoAndEstadoRegistroAndEstadoCitaIn(
+                idMedico,
+                EstadoRegistro.ACTIVO,
+                List.of(EstadoCita.CONFIRMADA, EstadoCita.EN_CURSO)
+        ))
+            throw new ConflictoException("El médico tiene una cita activa");
+    }
+
+    @Override
     public void actualizarEstadoCita(Long idCita, Long idEstadoCita) {
         Cita cita = obtenerCitaOExepcion(idCita);
 
@@ -69,10 +98,10 @@ public class CitaServiceImpl implements CitaService{
     @Override
     public CitaResponse registrar(CitaRequest request) {
         log.info("Registrando una nueva cita");
-        MedicoResponse medico = obtenerMedicoActivo(request.idMedico());
         PacienteResponse paciente = obtenerPacienteActivo(request.idPaciente());
+        pacienteConCitaActiva(request.idPaciente());
+        MedicoResponse medico = obtenerMedicoActivo(request.idMedico());
         validarMedicoActivoDisponible(medico);
-        validarCitasActivasDePaciente(paciente.id());
 
         Cita cita = citaMapper.requestAEntidad(request);
         citaRepository.saveAndFlush(cita);
@@ -180,20 +209,5 @@ public class CitaServiceImpl implements CitaService{
         log.info("Obteniendo paciente sin estado con id: {}", id);
 
         return pacienteClient.obtenerPacienteSinEstadoPorId(id);
-    }
-
-    private void validarCitasActivasDePaciente(Long idPaciente){
-        //Ocupo buscar si existe (al menos una cita) del paciente que este pendiente
-        //osea buscar por id paciente
-        // si el paciente es activo (🫦)
-        // y si tiene POR LO MENOS una cita con estado diferente a finalizada o cancelada
-        log.info("Validando si paciente no tiene una cita activa");
-        if(citaRepository.existsByIdPacienteAndEstadoRegistroAndEstadoCitaNotIn(
-                idPaciente,
-                EstadoRegistro.ACTIVO,
-                //Osea solo debe devolver un paciente con estadocita Pendiente, Confirmada o En curso
-                List.of(EstadoCita.CANCELADA, EstadoCita.FINALIZADA)
-        ))
-            throw new ConflictoException("El paciente tiene una cita activa");
     }
 }
