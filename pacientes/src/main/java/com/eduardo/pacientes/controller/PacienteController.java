@@ -32,4 +32,6 @@ public class PacienteController extends CRUDController<PacienteRequest, Paciente
     ){
         return ResponseEntity.ok(service.obtenerPacientePorIdSinEstado(id));
     }
+
+
 }
