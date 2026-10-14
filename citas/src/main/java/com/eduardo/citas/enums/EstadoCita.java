@@ -54,7 +54,7 @@ public enum EstadoCita {
         return puedeCambiar().contains(estadoCita);
     }
 
-    public static EstadoCita obtenerEstadoCitaPorCódigo(Long codigo){
+    public static EstadoCita obtenerEstadoCitaPorCodigo(Long codigo){
         for(EstadoCita e : values()){
             if(Objects.equals(e.codigo, codigo)){
                 return e;

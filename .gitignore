@@ -20,6 +20,7 @@ target/
 *.ipr
 servicio-a
 servicio-b
+data
 
 ### NetBeans ###
 /nbproject/private/
