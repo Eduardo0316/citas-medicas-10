@@ -31,6 +31,12 @@ public class CitaServiceImpl implements CitaService{
     private final MedicoClient medicoClient;
     private final PacienteClient pacienteClient;
 
+    private final List<EstadoCita> CITA_ESTADOS_ACTIVOS = List.of(
+            EstadoCita.PENDIENTE,
+            EstadoCita.CONFIRMADA,
+            EstadoCita.EN_CURSO
+    );
+
     @Override
     public void pacienteConCitaActiva(Long idPaciente) {
         //Ocupo un metodo en el repository pa ver si el paciente tiene una cita con estado activa
@@ -43,7 +49,7 @@ public class CitaServiceImpl implements CitaService{
                 idPaciente,
                 EstadoRegistro.ACTIVO,
                 //Osea solo debe devolver un paciente con estadocita Pendiente, Confirmada o En curso
-                List.of(EstadoCita.CONFIRMADA, EstadoCita.EN_CURSO)
+                CITA_ESTADOS_ACTIVOS
         ))
             throw new ConflictoException("El paciente tiene una cita activa");
     }
@@ -55,7 +61,7 @@ public class CitaServiceImpl implements CitaService{
         if(citaRepository.existsByIdMedicoAndEstadoRegistroAndEstadoCitaIn(
                 idMedico,
                 EstadoRegistro.ACTIVO,
-                List.of(EstadoCita.CONFIRMADA, EstadoCita.EN_CURSO)
+                CITA_ESTADOS_ACTIVOS
         ))
             throw new ConflictoException("El médico tiene una cita activa");
     }
@@ -118,15 +124,36 @@ public class CitaServiceImpl implements CitaService{
     }
 
     @Override
+    @Transactional
     public CitaResponse actualizar(CitaRequest request, Long id) {
+        // 1. Obtener cita existente
         Cita cita = obtenerCitaOExepcion(id);
-        if(cita.getEstadoCita() == EstadoCita.EN_CURSO)
-            throw new ConflictoException("La cita esta en curso y no puede actualizarse");
 
-        MedicoResponse medico = obtenerMedicoActivo(request.idMedico());
-        PacienteResponse paciente = obtenerPacienteActivo(request.idPaciente());
-        log.info("Actualizando cita con id {}",id);
+        // Guardar los IDs originales ANTES de actualizar la entidad
+        Long idMedicoAnterior = cita.getIdMedico();
+        Long idPacienteAnterior = cita.getIdPaciente();
 
+        boolean cambioMedico = !idMedicoAnterior.equals(request.idMedico());
+        boolean cambioPaciente = !idPacienteAnterior.equals(request.idPaciente());
+
+        // 2. Obtener entidades/clientes remotos
+        MedicoResponse medicoNuevo = obtenerMedicoActivo(request.idMedico());
+        PacienteResponse pacienteNuevo = obtenerPacienteActivo(request.idPaciente());
+
+        // 3. Validar médico nuevo si hubo cambio (debe estar DISPONIBLE)
+        if (cambioMedico) {
+            validarMedicoActivoDisponible(medicoNuevo);
+        }
+
+        // 4. Validar paciente nuevo si hubo cambio (no debe tener citas activas)
+        if (cambioPaciente) {
+            pacienteConCitaActiva(pacienteNuevo.id());
+        }
+
+        log.info("Actualizando cita con id {}", id);
+
+        // 5. Validar estado de la cita y actualizar valores
+        // cita.actualizar() ya valida: no eliminado, y estado diferente de EN_CURSO, FINALIZADA o CANCELADA
         cita.actualizar(
                 request.idPaciente(),
                 request.idMedico(),
@@ -134,13 +161,34 @@ public class CitaServiceImpl implements CitaService{
                 request.sintomas()
         );
 
-        log.info("Cita actualizada con id: {}",id);
-
+        // Se persiste para que las consultas de citas activas reflejen la reasignación
         citaRepository.saveAndFlush(cita);
+
+        // 6. Manejo de disponibilidades de médicos si cambió el médico
+        if (cambioMedico) {
+            // A) El NUEVO médico pasa a estar NO_DISPONIBLE (asociado a la cita PENDIENTE/CONFIRMADA)
+            actualizarDisponibilidadMedico(request.idMedico(), DisponibilidadMedico.NO_DISPONIBLE.getCodigo());
+
+            // B) Validar si al MÉDICO ANTERIOR le quedan otras citas activas
+            boolean medicoAnteriorTieneOtrasCitasActivas = citaRepository
+                    .existsByIdMedicoAndEstadoRegistroAndEstadoCitaIn(
+                            idMedicoAnterior,
+                            EstadoRegistro.ACTIVO,
+                            CITA_ESTADOS_ACTIVOS
+                    );
+
+            // Si NO tiene más citas activas, se LIBERA a DISPONIBLE
+            if (!medicoAnteriorTieneOtrasCitasActivas) {
+                actualizarDisponibilidadMedico(idMedicoAnterior, DisponibilidadMedico.DISPONIBLE.getCodigo());
+            }
+        }
+
+        log.info("Cita actualizada exitosamente con id: {}", id);
+
         return citaMapper.entidadAResponse(
                 cita,
-                paciente,
-                medico
+                pacienteNuevo,
+                medicoNuevo
         );
     }
 
